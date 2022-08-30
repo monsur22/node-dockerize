@@ -1,4 +1,4 @@
-# Docker Compose Backend and Frontend
+# Docker Compose Backend and Frontend In one project
 
 ## Run the System
 
