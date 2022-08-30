@@ -1,4 +1,4 @@
-# Docker Compose Nodejs and MySQL example
+# Docker Compose Backend and Frontend
 
 ## Run the System
 
@@ -24,7 +24,7 @@ Stopping all the running containers is also simple with a single command:
 docker-compose down
 ```
 
-If you need to stop and remove all containers, networks, and all images used by any service in `<em>`docker-compose.yml`</em>` file, use the command:
+If you need to stop and remove all containers, networks, and all images used by any service in `<em>`docker-compose.yml `</em>` file, use the command:
 
 ```bash
 docker-compose down --rmi all
