@@ -2,23 +2,79 @@ version: '3.8'
 
 services:
   app:
+    depends_on:
+      - mongo
     build:
       context: ./backend
       dockerfile: Dockerfile
+    container_name: node_backend
     restart: always
-    volumes: # mount volumes here
+    volumes:
       - ./backend:/backend
       - /backend/node_modules
     ports:
       - 8000:8000
+    networks:
+      - app-network
+  mongo:
+    image: mongo
+    container_name: mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    ports:
+      - 27017:27017
+    env_file:
+      - backend/.env
+    networks:
+      - app-network
+    volumes:
+      - ./database-data:/data/db
+  mongo-express:
+    image: mongo-express
+    restart: unless-stopped
+    container_name: mongo-express
+    links:
+      - mongo
+    ports:
+      - 8081:8081
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=root
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=example
+      # - ME_CONFIG_MONGODB_URL=mongodb://root:example@mongo:27017/?authSource=admin
+      - ME_CONFIG_MONGODB_SERVER=mongodb
+      # - ME_CONFIG_BASICAUTH_USERNAME=mexpress
+      # - ME_CONFIG_BASICAUTH_PASSWORD=mexpress
+    networks:
+      - app-network
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: "mailhog"
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - app-network
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    container_name: node_frontend
     restart: always
     volumes: # mount volumes here
       - ./frontend:/frontend
       - /frontend/node_modules
     ports:
       - 3000:3000
+    networks:
+      - app-network
+
+# volumes:
+#   db:
+# Networks
+networks:
+  app-network:
+    driver: bridge
