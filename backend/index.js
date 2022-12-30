@@ -13,7 +13,7 @@ const app = express();
 app.use(bodyParser.urlencoded({
   extended: true
 }))
-
+app.set("view engine", "ejs");
 app.use(bodyParser.json())
 app.use("/api/auth", AuthRoute);
 const port = process.env.SERVER_PORT;
@@ -46,22 +46,22 @@ app.get('/', (req, res) => {
 //   });
 // });
 
-app.post('/add', (req, res) => {
-  const user = new User({
-    name: req.body.name,
-    email: req.body.email,
-    password: req.body.password,
-  });
+// app.post('/add', (req, res) => {
+//   const user = new User({
+//     name: req.body.name,
+//     email: req.body.email,
+//     password: req.body.password,
+//   });
 
-  user.save().then(data => {
-    res.send({
-      message: "User created successfully!!",
-      user: data
-    });
-  }).catch(err => {
-    res.status(500).send({
-      message: err.message || "Some error occurred while creating user"
-    });
-  });
+//   user.save().then(data => {
+//     res.send({
+//       message: "User created successfully!!",
+//       user: data
+//     });
+//   }).catch(err => {
+//     res.status(500).send({
+//       message: err.message || "Some error occurred while creating user"
+//     });
+//   });
 
-});
+// });
