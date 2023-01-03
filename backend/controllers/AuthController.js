@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 import ejs from 'ejs';
 import * as fs from 'fs';
+import PasswordReset from '../model/PasswordReset.js';
 const test = async (req, res) => {
     res.send('auth controller');
 };
@@ -16,33 +17,98 @@ const codeGenerated = async (req, res) => {
     const reg = /[!@#$%^&?/*]/g;
     const str = "ava3f/oo?##bar4Script";
     const newStr = str.replace(reg, "_");
-    console.log(newStr);
     res.send(a);
 };
-const userRegister = async (req, res) => {
+const createUser = async (req, res) => {
     let emailCode = Math.random().toString(36).slice(2, 7);
     let hash = CryptoJS.SHA256(emailCode);
     var code = hash.toString(CryptoJS.enc.Base64);
     const reg = /[!@#$%^&?/*]/g;
-    var code = code.replace(reg, "_");
+    var confirm_code = code.replace(reg, "_");
     const salt = await bcrypt.genSalt();
     const passwordHash = await bcrypt.hash(req.body.password, salt);
     const user = new User({
         name: req.body.name,
         email: req.body.email,
         password: passwordHash,
-        confirm_code: code,
+        confirm_code: confirm_code,
     });
     user.save().then(data => {
         res.send({
             message: "User created successfully!!",
             user: data
         });
+        confirmMail(user);
     }).catch(err => {
         res.status(500).send({
             message: err.message || "Some error occurred while creating user"
         });
     });
+
+};
+const registerVerify = async (req,res) => {
+    const { confirm_code } = req.params;
+    const user = await User.findOne({ confirm_code: confirm_code });
+    if (user) {
+        user.isVerified = true
+        const updatedUser = await user.save()
+        res.json(updatedUser)
+    } else {
+        res.status(404).send("Sorry can't find data!")
+    }
+};
+
+const resetPassword = async (req,res) => {
+    let emailCode = Math.random().toString(36).slice(2, 7);
+    let hash = CryptoJS.SHA256(emailCode);
+    var code = hash.toString(CryptoJS.enc.Base64);
+    const reg = /[!@#$%^&?/*]/g;
+    var confirm_code = code.replace(reg, "_");
+    const { email } = req.body;
+    const user = await User.findOne({ email: email });
+    if (user &&  user.isVerified == true) {
+        const token_exist = await PasswordReset.findOne({ email: email });
+        if(token_exist) {
+            const updateToken = await PasswordReset.findOneAndUpdate({ email: email }, { token: confirm_code });
+            res.status(201).json(updateToken)
+        }else{
+            const passwordReset = new PasswordReset({
+                email: email,
+                token: confirm_code,
+            })
+            const createdResetToken = await passwordReset.save()
+            res.status(201).json(createdResetToken)
+        }
+        resetConfirmMail(user,confirm_code)
+    } else {
+        res.status(404).send("Sorry can't find data!")
+    }
+};
+
+const updatePassword = async (req, res) => {
+    const { confirm_code } = req.params;
+    const password = req.body.password;
+    const salt = await bcrypt.genSalt();
+    const passwordHash = await bcrypt.hash(req.body.password, salt);
+    const token_exist = await PasswordReset.findOne({ confirm_code: confirm_code });
+    if(token_exist) {
+        const user = await User.findOneAndUpdate({ email: token_exist.email }, { password: passwordHash }).then(data => {
+            res.send({
+                message: "update password successfully",
+                user: data
+            });
+            PasswordReset.findOneAndDelete({ email: token_exist.email }).exec();
+            passwordUpdateMail(token_exist)
+
+        }).catch(err => {
+            res.status(500).send({
+                message: err.message || "Some error occurred while creating user"
+            });
+        });
+    }else{
+        res.status(404).send("Invalid token")
+    }
+
 };
 const jwtGenerated = async (req, res) => {
     let token;
@@ -57,32 +123,49 @@ const jwtGenerated = async (req, res) => {
             },
         });
 };
+
 const transporter = nodemailer.createTransport({
     host: "mailhog",
     port: 1025
 });
 
-const emailSend = async(req, res) => {
-    // const { email } = req.params;
-    var params = "HEllo";
-    const data = await ejs.renderFile("views/test.ejs",{params}, {async: true});
+const confirmMail = async(user) => {
+    const data = await ejs.renderFile("views/confirm_mail.ejs",{user}, {async: true});
     const messageStatus = transporter.sendMail({
-    from: "My Company <company@companydomain.org>",
-    // to: email,
-    to: "My Company <company2@companydomain.org>",
-    subject: "Hi Mailhog!",
-    text: "This is the email content",
+    from: process.env.SERVER_MAIL,
+    to: user.email,
+    subject: process.env.REGISTER_MAIL_SUB,
     html: data
-    });
+    }).catch(err => console.log(err));
+};
 
-    if (!messageStatus) res.json("Error sending message!").status(500);
+const resetConfirmMail = async(user,confirm_code) => {
+    const data = await ejs.renderFile("views/password_reset_mail.ejs",{user,confirm_code}, {async: true});
+    const messageStatus = transporter.sendMail({
+    from: process.env.SERVER_MAIL,
+    to: user.email,
+    subject: process.env.RESET_MAIL_SUB,
+    html: data
+    }).catch(err => console.log(err));
+};
 
-    res.json("Sent!").status(200);
+const passwordUpdateMail = async(user) => {
+    const data = await ejs.renderFile("views/password_update.ejs",{user}, {async: true});
+    const messageStatus = transporter.sendMail({
+    from: process.env.SERVER_MAIL,
+    to: user.email,
+    subject: process.env.UPDATE_PASSWORD,
+    html: data
+    }).catch(err => console.log(err));
 };
 export {
     test,
-    userRegister,
+    createUser,
     codeGenerated,
     jwtGenerated,
-    emailSend
+    confirmMail,
+    registerVerify,
+    resetConfirmMail,
+    resetPassword,
+    updatePassword
 }
