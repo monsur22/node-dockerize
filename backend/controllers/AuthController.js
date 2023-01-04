@@ -1,11 +1,11 @@
 import CryptoJS from 'crypto-js';
 import User from '../model/User.js';
-import bcrypt from "bcrypt";
+import PasswordReset from '../model/PasswordReset.js';
+import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 import ejs from 'ejs';
 import * as fs from 'fs';
-import PasswordReset from '../model/PasswordReset.js';
 const test = async (req, res) => {
     res.send('auth controller');
 };
@@ -25,12 +25,11 @@ const createUser = async (req, res) => {
     var code = hash.toString(CryptoJS.enc.Base64);
     const reg = /[!@#$%^&?/*]/g;
     var confirm_code = code.replace(reg, "_");
-    const salt = await bcrypt.genSalt();
-    const passwordHash = await bcrypt.hash(req.body.password, salt);
+
     const user = new User({
         name: req.body.name,
         email: req.body.email,
-        password: passwordHash,
+        password: req.body.password,
         confirm_code: confirm_code,
     });
     user.save().then(data => {
@@ -58,6 +57,31 @@ const registerVerify = async (req,res) => {
     }
 };
 
+const loginUser = async (req,res) => {
+    const {email, password} = req.body;
+    const user = await User.findOne({ email: email });
+    if (!user) {
+        return res.send({message: "Invalid email or password."});
+    }else if(user.isVerified == false) {
+        return res.status(401).json({message: "Your don't verify your email yet.", status: 401})
+    }else{
+        user.matchPassword(password)
+        return res.status(201).json({
+            user,
+            // _id: user._id,
+            // name: user.name,
+            // email: user.email,
+            token: generateToken(user._id)
+        })
+    }
+    console.log(user);
+
+};
+const generateToken = (id) => {
+    return jwt.sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: '30d',
+    })
+}
 const resetPassword = async (req,res) => {
     let emailCode = Math.random().toString(36).slice(2, 7);
     let hash = CryptoJS.SHA256(emailCode);
@@ -87,15 +111,16 @@ const resetPassword = async (req,res) => {
 
 const updatePassword = async (req, res) => {
     const { confirm_code } = req.params;
-    const password = req.body.password;
     const salt = await bcrypt.genSalt();
     const passwordHash = await bcrypt.hash(req.body.password, salt);
     const token_exist = await PasswordReset.findOne({ confirm_code: confirm_code });
     if(token_exist) {
-        const user = await User.findOneAndUpdate({ email: token_exist.email }, { password: passwordHash }).then(data => {
+        const user_data = await User.findOne({ email: token_exist.email });
+        const update_user = await User.findOneAndUpdate({ email: token_exist.email }, { password: passwordHash }).then(data => {
             res.send({
                 message: "update password successfully",
-                user: data
+                update_user: data,
+                token: generateToken(user_data._id)
             });
             PasswordReset.findOneAndDelete({ email: token_exist.email }).exec();
             passwordUpdateMail(token_exist)
@@ -167,5 +192,6 @@ export {
     registerVerify,
     resetConfirmMail,
     resetPassword,
-    updatePassword
+    updatePassword,
+    loginUser
 }

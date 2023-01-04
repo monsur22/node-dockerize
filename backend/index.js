@@ -2,9 +2,6 @@ import express from 'express';
 import * as dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import bodyParser from 'body-parser';
-import User from './model/User.js';
-import bcrypt from "bcrypt";
-// import CryptoJS from 'crypto-js';
 import AuthRoute from './routes/AuthRoute.js';
 
 

@@ -8,6 +8,7 @@ import {
     registerVerify,
     resetPassword,
     updatePassword,
+    loginUser,
     test
 } from '../controllers/AuthController.js'
 // import {protect,admin} from '../middleware/authMeddleware.js'
@@ -15,6 +16,7 @@ import {
 
 router.route("/").get(test);
 router.route("/register").post(createUser);
+router.route("/login").post(loginUser);
 router.route("/email-verify/:confirm_code").get(registerVerify);
 router.route("/reset-password").post(resetPassword);
 router.route("/reset-password/:confirm_code").post(updatePassword);
