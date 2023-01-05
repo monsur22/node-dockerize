@@ -9,16 +9,6 @@ import * as fs from 'fs';
 const test = async (req, res) => {
     res.send('auth controller');
 };
-const codeGenerated = async (req, res) => {
-    let emailCode = Math.random().toString(36).slice(2, 7);
-    var hash = CryptoJS.SHA256(emailCode);
-    var a = hash.toString(CryptoJS.enc.Base64)
-
-    const reg = /[!@#$%^&?/*]/g;
-    const str = "ava3f/oo?##bar4Script";
-    const newStr = str.replace(reg, "_");
-    res.send(a);
-};
 const createUser = async (req, res) => {
     let emailCode = Math.random().toString(36).slice(2, 7);
     let hash = CryptoJS.SHA256(emailCode);
@@ -32,10 +22,15 @@ const createUser = async (req, res) => {
         password: req.body.password,
         confirm_code: confirm_code,
     });
+    const userExists = await User.findOne({ email:req.body.email })
+    if(userExists) {
+        res.status(409).send("Email already exists!");
+    }
     user.save().then(data => {
         res.send({
             message: "User created successfully!!",
-            user: data
+            user: data,
+            token: generateToken(user._id)
         });
         confirmMail(user);
     }).catch(err => {
@@ -45,6 +40,7 @@ const createUser = async (req, res) => {
     });
 
 };
+
 const registerVerify = async (req,res) => {
     const { confirm_code } = req.params;
     const user = await User.findOne({ confirm_code: confirm_code });
@@ -68,20 +64,17 @@ const loginUser = async (req,res) => {
         user.matchPassword(password)
         return res.status(201).json({
             user,
-            // _id: user._id,
-            // name: user.name,
-            // email: user.email,
             token: generateToken(user._id)
         })
     }
-    console.log(user);
-
 };
+
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: '30d',
     })
 }
+
 const resetPassword = async (req,res) => {
     let emailCode = Math.random().toString(36).slice(2, 7);
     let hash = CryptoJS.SHA256(emailCode);
@@ -135,20 +128,7 @@ const updatePassword = async (req, res) => {
     }
 
 };
-const jwtGenerated = async (req, res) => {
-    let token;
-    let JWT_SECRET = "123";
-    token = jwt.sign({user: "admin"}, JWT_SECRET, {expiresIn: "1h"});
-
-    res.status(201)
-        .json({
-            success: true,
-            data: {
-                token: token
-            },
-        });
-};
-
+// Email  Functionality
 const transporter = nodemailer.createTransport({
     host: "mailhog",
     port: 1025
@@ -186,8 +166,6 @@ const passwordUpdateMail = async(user) => {
 export {
     test,
     createUser,
-    codeGenerated,
-    jwtGenerated,
     confirmMail,
     registerVerify,
     resetConfirmMail,
