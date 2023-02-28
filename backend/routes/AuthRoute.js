@@ -1,28 +1,33 @@
 import express from 'express';
-import {protect} from '../middleware/auth.js'
-const router = express.Router()
+import {protect,protectedRoute} from '../middleware/auth.js'
 import {
     createUser,
     registerVerify,
     resetPassword,
     updatePassword,
     loginUser,
-    test
+    logoutUser,
+    checkAuthenticate
 } from '../controllers/AuthController.js'
-// import {protect,admin} from '../middleware/authMeddleware.js'
 
+const authRouter = express.Router();
 
-router.route("/").get(protect,test);
-router.route("/register").post(createUser);
-router.route("/login").post(loginUser);
-router.route("/email-verify/:confirm_code").get(registerVerify);
-router.route("/reset-password").post(resetPassword);
-router.route("/reset-password/:confirm_code").post(updatePassword);
+// Authentication routes
+authRouter.post('/register', createUser);
+authRouter.post('/login', loginUser);
+authRouter.get('/logout', protectedRoute, logoutUser);
+authRouter.get('/email-verify/:confirm_code', registerVerify);
+
+// Password reset routes
+authRouter.post('/reset-password', resetPassword);
+authRouter.post('/reset-password/:confirm_code', updatePassword);
+
+// Protected route for testing purposes
+authRouter.get('/', protectedRoute, checkAuthenticate);
 
 /***    This  route will be for view password update form  ***
 router.route("/reset-password/:confirm_code").get(getViewPage);
 ***    This  route will be for view password update form     ******/
 
-// router.route("/:id").get(getBlogById).put(updateBlog).delete(deleteBlog);
 
-export default router
+export default authRouter
