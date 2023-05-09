@@ -13,7 +13,6 @@ import { tokenBlacklist } from '../middleware/auth.js';
 */
 const createUser = async (req, res) => {
     const confirm_code = generateRandomCode(32);
-    console.log(confirm_code)
 
     const user = new User({
         email: req.body.email,
@@ -80,7 +79,6 @@ const registerVerify = async (req, res) => {
         return res.status(500).send({message:"Something went wrong"});
     }
 };
-
 
 /*
 --------------------------------------------------------------------------
