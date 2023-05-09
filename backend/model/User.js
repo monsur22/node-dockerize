@@ -5,7 +5,7 @@ const Schema = mongoose.Schema;
 let UserSchema = new Schema({
     name: {
         type: String,
-        required: true,
+        required: false,
     },
     email: {
         type: String,
@@ -14,11 +14,21 @@ let UserSchema = new Schema({
     },
     password: {
         type: String,
-        required: true,
+        required: false,
+    },
+    confirmPassword: {
+        type: String,
+        required: false,
+        validate: {
+            validator: function(v) {
+                return v === this.password;
+            },
+            message: props => 'Passwords do not match'
+        }
     },
     confirm_code: {
         type: String,
-        required: true,
+        required: false,
     },
     isVerified: {
         type: Boolean,

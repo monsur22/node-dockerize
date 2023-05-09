@@ -2,6 +2,7 @@ import express from 'express';
 import {protect,protectedRoute} from '../middleware/auth.js'
 import {
     createUser,
+    // userCreate,
     registerVerify,
     resetPassword,
     updatePassword,
@@ -13,7 +14,8 @@ import {
 const authRouter = express.Router();
 
 // Authentication routes
-authRouter.post('/register', createUser);
+// authRouter.post('/register', userCreate);
+authRouter.post('/registration', createUser);
 authRouter.post('/login', loginUser);
 authRouter.get('/logout', protectedRoute, logoutUser);
 authRouter.get('/email-verify/:confirm_code', registerVerify);

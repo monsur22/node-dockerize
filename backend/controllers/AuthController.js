@@ -13,10 +13,10 @@ import { tokenBlacklist } from '../middleware/auth.js';
 */
 const createUser = async (req, res) => {
     const confirm_code = generateRandomCode(32);
+    console.log(confirm_code)
+
     const user = new User({
-        name: req.body.name,
         email: req.body.email,
-        password: req.body.password,
         confirm_code: confirm_code,
     });
     const userExists = await User.findOne({
@@ -49,8 +49,6 @@ const createUser = async (req, res) => {
             });
         });
     }
-
-
 };
 /*
 -----------------------------------------------------
@@ -60,6 +58,12 @@ const createUser = async (req, res) => {
 const registerVerify = async (req, res) => {
     try {
         const { confirm_code } = req.params;
+        const { password, confirmPassword } = req.body;
+
+        if (password !== confirmPassword) {
+            return res.status(400).send({message:"Passwords do not match"});
+        }
+
         const user = await User.findOne({ confirm_code });
         if (!user) {
             return res.status(404).send({message:"User not found"});
@@ -68,6 +72,7 @@ const registerVerify = async (req, res) => {
             return res.status(400).send({message:"User already verified"});
         }
         user.isVerified = true;
+        user.password = password;
         const updatedUser = await user.save();
         return res.status(200).send({message:"User verified successfully"});
     } catch (err) {
@@ -75,6 +80,7 @@ const registerVerify = async (req, res) => {
         return res.status(500).send({message:"Something went wrong"});
     }
 };
+
 
 /*
 --------------------------------------------------------------------------
@@ -267,6 +273,7 @@ const checkAuthenticate = async (req, res) => {
 
 export {
     createUser,
+    // userCreate,
     confirmMail,
     registerVerify,
     resetConfirmMail,
