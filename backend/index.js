@@ -2,6 +2,7 @@ import express from 'express';
 import * as dotenv from 'dotenv';
 import bodyParser from 'body-parser';
 import AuthRoute from './routes/AuthRoute.js';
+import RolePermissionRoute from './routes/RolePermissionRoute.js'
 import connectDB from './config/db.js'
 
 dotenv.config();
@@ -25,6 +26,7 @@ app.set("view engine", "ejs");
 
 // Register API routes
 app.use("/api/auth", AuthRoute);
+app.use("/api/role-perm", RolePermissionRoute);
 
 // Handle requests to the root URL
 app.get('/', (req, res) => {
